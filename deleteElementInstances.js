@@ -54,7 +54,7 @@ prompt.get(['Environment (staging, us-production, uk-production)', 'User Secret'
     })
 });
 
-getInstances = (environment, authHeader, nextPageToken = '') => {
+getInstances = async (environment, authHeader, nextPageToken = '') => {
     const options = {
         method: 'get',
         headers: {
@@ -62,24 +62,31 @@ getInstances = (environment, authHeader, nextPageToken = '') => {
         }
     };
 
-    return fetch(`${environment}/elements/api-v2/instances?nextPage=${nextPageToken}`, options)
-        .then(response => {
-            nextPageToken = response.headers.get('elements-next-page-token');
-            return response.json();
-        })
-        .then(json => {
-            json.forEach(instance => instancesToDelete.push(instance.id));
-            return (nextPageToken ? getInstances(environment, authHeader, nextPageToken) : instancesToDelete);
-            // if (nextPageToken) {
-            //     return getInstances(environment, authHeader, nextPageToken);
-            // }
-            // else {
-            //     return instancesToDelete;
-            // }
-        })
-        .catch(err => {
-            console.log(`ERROR: ${err}`);
-        });
+    let response = await fetch(`${environment}/elements/api-v2/instances?nextPage=${nextPageToken}`, options).catch(err => console.log(`ERROR!:`, err));
+    nextPageToken = response.headers.get('elements-next-page-token');
+    // console.log("response.body", response.body);
+    // console.log("response type of", typeof response)
+    let jsonBody = await response.json();
+    jsonBody.forEach(instance => instancesToDelete.push(instance.id));
+    return (nextPageToken ? getInstances(environment, authHeader, nextPageToken) : instancesToDelete);
+
+
+    // return fetch(`${environment}/elements/api-v2/instances?nextPage=${nextPageToken}`, options)
+    // .then(response => {
+    //     nextPageToken = response.headers.get('elements-next-page-token');
+    //     console.log("TYPE OF Response", typeof response);
+    //     console.log("response json", response.json());
+    //     console.log("response type of 1", response.json());
+    //     return response.json();
+    // })
+    // .then(json => {
+    //     console.log("response type of 2", typeof json)
+    //     json.forEach(instance => instancesToDelete.push(instance.id));
+    //     return (nextPageToken ? getInstances(environment, authHeader, nextPageToken) : instancesToDelete);
+    // })
+    // .catch(err => {
+    //     console.log(`ERROR: ${err}`);
+    // });
 }
 
 deleteInstances = async (instanceId, environment, authHeader) => {
