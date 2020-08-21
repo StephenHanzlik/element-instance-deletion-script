@@ -31,26 +31,31 @@ prompt.get(['Environment (staging, us-production, uk-production)', 'User Secret'
     console.log(`Using Authorization Header: ${authHeader}`);
     console.log('Do you want to proceed?');
 
-    prompt.get([`Enter 'yes' to proceed`], (err, result) => {
-        
+    prompt.get([`Enter 'yes' to proceed`], async (err, result) => {
+
         if (result[`Enter 'yes' to proceed`].toLowerCase() !== 'yes') return console.log('Aborting...');
 
         console.log("Fetching instances...");
 
-        getInstances(environment, authHeader)
-            .then(instances => {
-                console.log(`Deleting ${instances.length} instances...`);
-                asyncForEach(instances, environment, authHeader, async (id) => {
-                    await deleteInstances(id, environment, authHeader).then(
+        let instances = await getInstances(environment, authHeader).catch (err=> console.log("ERROR!:", err))
+        // .then(instances => {
 
-                    );
-                });
-            })
-            // .then(resp=>{
-            
+        console.log(`Deleting ${instances.length} instances...`);
+
+        // asyncForEach(instances, environment, authHeader, async (id) => {
+        for (let i = 0; i < instances.length; i++) {
+            let instanceId = instances[i];
+            console.log("DEBUG LOGGING - Looping instanceId=", instanceId);
+            let resp = await deleteInstances(instanceId, environment, authHeader).catch(err => console.log(`Error Deleting Instance ${id}`, resp.message))
+            console.log("DEBUG LOGGING - Promise resolved for instanceId=", instanceId);
+            resp.ok ? deleteSuccesCounter++ : deleteFailedCounter++;
+        }
+        // });
+        console.log(`Successfully Deleted ${deleteSuccesCounter} Instances`);
+        console.log(`Failed to delete ${deleteFailedCounter} Instances`);
             // })
-            .catch(err=>console.log("ERROR!:", err))
-    })
+            // .catch (err=> console.log("ERROR!:", err))
+})
 });
 
 // async function getInstances(environment, authHeader, nextPageToken = '') {
@@ -84,7 +89,7 @@ getInstances = (environment, authHeader, nextPageToken = '') => {
         });
 }
 
-deleteInstances = (instanceId, environment, authHeader) => {
+deleteInstances = async (instanceId, environment, authHeader) => {
     const options = {
         'method': 'delete',
         'headers': {
@@ -92,17 +97,17 @@ deleteInstances = (instanceId, environment, authHeader) => {
         }
     };
 
-    return fetch(`${environment}/elements/api-v2/instances/${instanceId}`, options)
-        .then(response => {
-            //return 
-            deleteSuccesCounter++;
-            // console.log("Successful delete");
-        })
-        .catch(err => {
-            //return 
-            deleteFailedCounter++;
-            // return console.log(`ERROR: ${err}`);
-        });
+    return await fetch(`${environment}/elements/api-v2/instances/${instanceId}`, options);
+    // .then(response => {
+    //     //return 
+    //     // deleteSuccesCounter++;
+    //     // console.log("Successful delete");
+    // })
+    // .catch(err => {
+    //     //return 
+    //     deleteFailedCounter++;
+    //     // return console.log(`ERROR: ${err}`);
+    // });
 }
 
 const asyncForEach = async (array, environment, authHeader, callback) => {
