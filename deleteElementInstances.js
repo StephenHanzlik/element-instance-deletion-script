@@ -1,4 +1,3 @@
-const requestPromise = require('request-promise-native');
 const prompt = require('prompt');
 const fetch = require('node-fetch');
 
